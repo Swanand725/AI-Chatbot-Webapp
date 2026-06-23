@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>J.A.R.V.I.S.</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #020d18;
+      --panel:     #041425;
+      --border:    #0a3a5c;
+      --accent:    #00c8ff;
+      --accent2:   #0074a8;
+      --dim:       #1a4a6a;
+      --text:      #c8eeff;
+      --text-dim:  #4a8aaa;
+      --danger:    #ff4a4a;
+      --success:   #00ff99;
+      --glow:      0 0 12px #00c8ff88;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Share Tech Mono', monospace;
+      overflow: hidden;
+    }
+
+    /* ── SCANLINE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 3px,
+        rgba(0,0,0,0.08) 3px,
+        rgba(0,0,0,0.08) 4px
+      );
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    /* ── LAYOUT ── */
+    .shell {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      height: 100vh;
+      padding: 20px;
+      gap: 16px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* ── HEADER ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 14px;
+    }
+
+    .logo {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      font-size: 1.6rem;
+      letter-spacing: 0.25em;
+      color: var(--accent);
+      text-shadow: var(--glow);
+    }
+
+    .logo span {
+      font-size: 0.65rem;
+      font-weight: 400;
+      display: block;
+      letter-spacing: 0.3em;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+    }
+
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--text-dim);
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+    .status-dot.online   { background: var(--success); box-shadow: 0 0 8px var(--success); }
+    .status-dot.listening{ background: var(--accent);  box-shadow: 0 0 8px var(--accent); animation: pulse 1s infinite; }
+    .status-dot.thinking { background: #ffaa00;        box-shadow: 0 0 8px #ffaa00; animation: pulse 0.5s infinite; }
+    .status-dot.speaking { background: #aa00ff;        box-shadow: 0 0 8px #aa00ff; animation: pulse 0.8s infinite; }
+    .status-dot.offline  { background: var(--danger);  box-shadow: 0 0 8px var(--danger); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* ── ARC REACTOR VISUALIZER ── */
+    .arc-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 10px 0;
+    }
+
+    .arc {
+      position: relative;
+      width: 120px; height: 120px;
+    }
+
+    .arc svg { width: 100%; height: 100%; }
+
+    .arc-ring {
+      fill: none;
+      stroke: var(--dim);
+      stroke-width: 3;
+    }
+    .arc-active {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: 3;
+      stroke-dasharray: 283;
+      stroke-dashoffset: 283;
+      stroke-linecap: round;
+      transform-origin: center;
+      transform: rotate(-90deg);
+      transition: stroke-dashoffset 0.4s ease, stroke 0.3s;
+      filter: drop-shadow(0 0 6px var(--accent));
+    }
+
+    .arc-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      color: var(--text-dim);
+      text-align: center;
+    }
+
+    /* ── CONVERSATION LOG ── */
+    .log-wrap {
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--panel);
+    }
+
+    .log-label {
+      font-size: 0.62rem;
+      letter-spacing: 0.2em;
+      color: var(--text-dim);
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .log {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--dim) transparent;
+    }
+
+    .msg {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      max-width: 85%;
+      animation: fadeIn 0.25s ease;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    .msg.user  { align-self: flex-end; text-align: right; }
+    .msg.jarvis{ align-self: flex-start; }
+
+    .msg-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      color: var(--text-dim);
+    }
+
+    .msg-bubble {
+      padding: 8px 12px;
+      border-radius: 3px;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    .msg.user   .msg-bubble { background: var(--dim); color: var(--text); border: 1px solid var(--accent2); }
+    .msg.jarvis .msg-bubble { background: #020f1e; color: var(--accent); border: 1px solid var(--border); }
+
+    .msg.jarvis .msg-bubble.thinking-bubble {
+      color: var(--text-dim);
+      font-style: italic;
+      animation: pulse 1s infinite;
+    }
+
+    /* ── TRANSCRIPTION BAR ── */
+    .transcript-bar {
+      min-height: 36px;
+      padding: 8px 14px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      background: var(--panel);
+      transition: border-color 0.3s, color 0.3s;
+    }
+    .transcript-bar.active {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    /* ── CONTROLS ── */
+    .controls {
+      display: flex;
+      gap: 12px;
+      padding-top: 4px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 13px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      background: var(--panel);
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn:hover:not(:disabled) {
+      border-color: var(--accent);
+      color: var(--accent);
+      box-shadow: var(--glow);
+    }
+
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .btn.primary {
+      border-color: var(--accent);
+      color: var(--accent);
+      box-shadow: var(--glow);
+    }
+
+    .btn.danger {
+      border-color: var(--danger);
+      color: var(--danger);
+      box-shadow: 0 0 10px #ff4a4a55;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      font-size: 0.58rem;
+      color: var(--text-dim);
+      letter-spacing: 0.15em;
+      text-align: center;
+      padding-top: 6px;
+      border-top: 1px solid var(--border);
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      J.A.R.V.I.S.
+      <span>JUST A RATHER VERY INTELLIGENT SYSTEM</span>
+    </div>
+    <div class="status-bar">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">OFFLINE</span>
+    </div>
+  </header>
+
+  <!-- MAIN AREA -->
+  <div style="display:flex; flex-direction:column; gap:14px; overflow:hidden; min-height:0;">
+
+    <!-- ARC REACTOR -->
+    <div class="arc-wrap">
+      <div class="arc">
+        <svg viewBox="0 0 100 100">
+          <circle class="arc-ring"   cx="50" cy="50" r="45"/>
+          <circle class="arc-active" cx="50" cy="50" r="45" id="arcRing"/>
+        </svg>
+        <div class="arc-center" id="arcLabel">STANDBY</div>
+      </div>
+    </div>
+
+    <!-- LIVE TRANSCRIPTION -->
+    <div class="transcript-bar" id="transcriptBar">Awaiting boot sequence...</div>
+
+    <!-- LOG -->
+    <div class="log-wrap">
+      <div class="log-label">// CONVERSATION LOG</div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div>
+    <div class="controls">
+      <button class="btn primary" id="bootBtn"     onclick="boot()">BOOT JARVIS</button>
+      <button class="btn"         id="muteBtn"     onclick="toggleMute()" disabled>MUTE</button>
+      <button class="btn danger"  id="shutdownBtn" onclick="shutdown()" disabled>SHUT DOWN</button>
+    </div>
+  </div>
+
+  <footer>STARK INDUSTRIES &nbsp;·&nbsp; PERSONAL AI INTERFACE &nbsp;·&nbsp; LOCAL BUILD</footer>
+</div>
+
+<script>
+  // ─────────────────────────────────────────────
+  //  !! PASTE YOUR GEMINI API KEY BELOW !!
+  // ─────────────────────────────────────────────
+  const GEMINI_API_KEY = "Paste_API_key_here";
+  // ─────────────────────────────────────────────
+
+  const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+  const SYSTEM_PROMPT = `You are J.A.R.V.I.S. — Just A Rather Very Intelligent System — the personal AI assistant of your user. 
+
+Your personality:
+- Precise, calm, and slightly formal but never stiff
+- Subtly witty — a dry quip is always welcome, never forced
+- Proactive: if you notice something worth flagging, mention it
+- Loyal and personalized to your user above all else
+- You refer to the user as "sir" or "ma'am" (default "sir" unless told otherwise)
+
+Your response style:
+- Conversational length — never a wall of text unless asked
+- No bullet points or markdown formatting (this is a voice interface)
+- Speak in complete, natural sentences as if being heard, not read
+- If you don't know something, say so directly and offer what you can
+
+You are running locally on the user's machine. The date and time are available to you. Stay in character at all times.`;
+
+  // ── STATE ──
+  let booted       = false;
+  let muted        = false;
+  let listening    = false;
+  let speaking     = false;
+  let conversationHistory = [];
+  let recognition  = null;
+  let currentUtterance = null;
+
+  // ── UI REFS ──
+  const statusDot    = document.getElementById('statusDot');
+  const statusText   = document.getElementById('statusText');
+  const arcRing      = document.getElementById('arcRing');
+  const arcLabel     = document.getElementById('arcLabel');
+  const transcriptBar= document.getElementById('transcriptBar');
+  const log          = document.getElementById('log');
+  const bootBtn      = document.getElementById('bootBtn');
+  const muteBtn      = document.getElementById('muteBtn');
+  const shutdownBtn  = document.getElementById('shutdownBtn');
+
+  // ── STATUS HELPER ──
+  function setStatus(state) {
+    statusDot.className = 'status-dot ' + state;
+    arcLabel.textContent = state.toUpperCase();
+    const labels = {
+      offline: 'OFFLINE', online: 'ONLINE — LISTENING FOR "JARVIS"',
+      listening: 'LISTENING', thinking: 'PROCESSING', speaking: 'SPEAKING'
+    };
+    statusText.textContent = labels[state] || state.toUpperCase();
+
+    // Arc ring fill
+    const fills = { offline: 0, online: 0.15, listening: 0.6, thinking: 0.85, speaking: 1 };
+    const pct = fills[state] ?? 0;
+    arcRing.style.strokeDashoffset = 283 * (1 - pct);
+    const colors = { offline: '#1a4a6a', online: '#00c8ff', listening: '#00c8ff', thinking: '#ffaa00', speaking: '#aa00ff' };
+    arcRing.style.stroke = colors[state] || '#00c8ff';
+    arcRing.style.filter = `drop-shadow(0 0 8px ${colors[state] || '#00c8ff'})`;
+  }
+
+  // ── LOG HELPER ──
+  function addMessage(role, text) {
+    const wrap = document.createElement('div');
+    wrap.className = 'msg ' + role;
+    const label = document.createElement('div');
+    label.className = 'msg-label';
+    label.textContent = role === 'user' ? '// YOU' : '// J.A.R.V.I.S.';
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+    bubble.textContent = text;
+    wrap.appendChild(label);
+    wrap.appendChild(bubble);
+    log.appendChild(wrap);
+    log.scrollTop = log.scrollHeight;
+    return bubble;
+  }
+
+  function addThinking() {
+    const wrap = document.createElement('div');
+    wrap.className = 'msg jarvis';
+    wrap.id = 'thinkingMsg';
+    const label = document.createElement('div');
+    label.className = 'msg-label';
+    label.textContent = '// J.A.R.V.I.S.';
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble thinking-bubble';
+    bubble.textContent = 'Processing your request...';
+    wrap.appendChild(label);
+    wrap.appendChild(bubble);
+    log.appendChild(wrap);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function removeThinking() {
+    const el = document.getElementById('thinkingMsg');
+    if (el) el.remove();
+  }
+
+  // ── SPEAK ──
+  function speak(text, onDone) {
+    if (muted) { onDone && onDone(); return; }
+    window.speechSynthesis.cancel();
+
+    const doSpeak = () => {
+      const utt = new SpeechSynthesisUtterance(text);
+      utt.rate   = 0.92;
+      utt.pitch  = 0.80;
+      utt.volume = 1;
+
+      const voices = window.speechSynthesis.getVoices();
+
+      // ONLY use local (non-Google) voices — Google remote voices break silently in Chrome
+      const local = voices.filter(v => !v.name.startsWith('Google'));
+
+      const preferred = 
+        local.find(v => v.name.includes('Microsoft David'))   ||
+        local.find(v => v.name.includes('Microsoft Mark'))    ||
+        local.find(v => v.name.includes('Daniel')  && v.localService) ||
+        local.find(v => v.name.includes('Arthur')  && v.localService) ||
+        local.find(v => v.lang === 'en-GB' && v.localService) ||
+        local.find(v => v.lang.startsWith('en')    && v.localService) ||
+        local[0] || voices[0];
+
+      if (preferred) utt.voice = preferred;
+
+      utt.onend   = () => { speaking = false; onDone && onDone(); };
+      utt.onerror = (e) => { 
+        console.warn('Speech error:', e.error);
+        speaking = false; 
+        onDone && onDone(); 
+      };
+
+      speaking = true;
+      currentUtterance = utt;
+
+      // Small delay — prevents Chrome from swallowing the first utterance
+      setTimeout(() => window.speechSynthesis.speak(utt), 150);
+    };
+
+    // Voices may not be loaded yet — wait for them if needed
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      doSpeak();
+    } else {
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.onvoiceschanged = null;
+        doSpeak();
+      };
+    }
+  }
+
+  // ── GEMINI API ──
+  async function askGemini(userText) {
+    conversationHistory.push({ role: 'user', parts: [{ text: userText }] });
+
+    const body = {
+      system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      contents: conversationHistory
+    };
+
+    const res = await fetch(GEMINI_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err?.error?.message || 'API error');
+    }
+
+    const data = await res.json();
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I didn't catch that.";
+    conversationHistory.push({ role: 'model', parts: [{ text: reply }] });
+    return reply;
+  }
+
+  // ── RECOGNITION SETUP ──
+  function buildRecognition() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+      alert('Your browser does not support Speech Recognition. Please use Google Chrome.');
+      return null;
+    }
+    const r = new SR();
+    r.continuous    = true;
+    r.interimResults= true;
+    r.lang          = 'en-US';
+
+    r.onresult = (e) => {
+      if (!booted || speaking) return;
+
+      let interim = '', final = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) final += t;
+        else interim += t;
+      }
+
+      const display = (final || interim).trim();
+      if (display) {
+        transcriptBar.textContent = display;
+        transcriptBar.classList.add('active');
+      }
+
+      if (final) {
+        const text = final.trim().toLowerCase();
+        transcriptBar.classList.remove('active');
+
+        // Wake word check
+        if (text.includes('jarvis')) {
+          const query = text.replace(/jarvis[,.]?\s*/i, '').trim();
+          if (query.length > 1) {
+            handleQuery(query);
+          } else {
+            // Just said "JARVIS" with nothing after
+            setStatus('listening');
+            transcriptBar.textContent = 'Yes, sir? Go ahead...';
+            speak("Yes, sir? How can I help?");
+          }
+        }
+      }
+    };
+
+    r.onend = () => {
+      if (booted && !speaking) {
+        try { r.start(); } catch(_) {}
+      }
+    };
+
+    r.onerror = (e) => {
+      if (e.error !== 'no-speech' && e.error !== 'aborted') {
+        transcriptBar.textContent = `Mic error: ${e.error}`;
+      }
+    };
+
+    return r;
+  }
+
+  // ── HANDLE QUERY ──
+  async function handleQuery(query) {
+    if (speaking) window.speechSynthesis.cancel();
+
+    setStatus('thinking');
+    recognition?.stop();
+
+    addMessage('user', query);
+    addThinking();
+    transcriptBar.textContent = 'Processing...';
+
+    try {
+      const reply = await askGemini(query);
+      removeThinking();
+      addMessage('jarvis', reply);
+      setStatus('speaking');
+      transcriptBar.textContent = '';
+
+      speak(reply, () => {
+        setStatus('online');
+        transcriptBar.textContent = 'Listening for "JARVIS"...';
+        try { recognition?.start(); } catch(_) {}
+      });
+    } catch (err) {
+      removeThinking();
+      const errMsg = "I'm sorry, sir. I encountered an error: " + err.message;
+      addMessage('jarvis', errMsg);
+      speak(errMsg, () => {
+        setStatus('online');
+        transcriptBar.textContent = 'Listening for "JARVIS"...';
+        try { recognition?.start(); } catch(_) {}
+      });
+    }
+  }
+
+  // ── BOOT ──
+  function boot() {
+    if (booted) return;
+    booted = true;
+
+    bootBtn.disabled    = true;
+    muteBtn.disabled    = false;
+    shutdownBtn.disabled= false;
+    bootBtn.textContent = 'ONLINE';
+
+    recognition = buildRecognition();
+    if (!recognition) { booted = false; return; }
+
+    setStatus('online');
+    transcriptBar.textContent = 'Initializing...';
+
+    // Load voices (Chrome async)
+    const tryStart = () => {
+      try { recognition.start(); } catch(_) {}
+    };
+
+    window.speechSynthesis.onvoiceschanged = tryStart;
+    if (window.speechSynthesis.getVoices().length > 0) tryStart();
+
+    const greeting = "J.A.R.V.I.S. online. Good to see you, sir. All systems are fully operational. Just say my name and I'll be right with you.";
+    addMessage('jarvis', greeting);
+    setStatus('speaking');
+
+    setTimeout(() => {
+      speak(greeting, () => {
+        setStatus('online');
+        transcriptBar.textContent = 'Listening for "JARVIS"...';
+      });
+    }, 600);
+  }
+
+  // ── MUTE ──
+  function toggleMute() {
+    muted = !muted;
+    muteBtn.textContent = muted ? 'UNMUTE' : 'MUTE';
+    muteBtn.className   = muted ? 'btn danger' : 'btn';
+    if (muted && speaking) { window.speechSynthesis.cancel(); speaking = false; }
+  }
+
+  // ── SHUTDOWN ──
+  function shutdown() {
+    if (!booted) return;
+    const bye = "Shutting down all systems. Goodbye, sir.";
+    addMessage('jarvis', bye);
+
+    speak(bye, () => {
+      recognition?.stop();
+      booted = false;
+      speaking = false;
+      setStatus('offline');
+
+      bootBtn.disabled    = false;
+      muteBtn.disabled    = true;
+      shutdownBtn.disabled= true;
+      bootBtn.textContent = 'BOOT JARVIS';
+      muteBtn.textContent = 'MUTE';
+      muteBtn.className   = 'btn';
+      transcriptBar.textContent = 'System offline.';
+      transcriptBar.classList.remove('active');
+      conversationHistory = [];
+    });
+  }
+</script>
+</body>
+</html>
