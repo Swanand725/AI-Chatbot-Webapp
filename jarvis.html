@@ -291,6 +291,136 @@
       border-top: 1px solid var(--border);
       opacity: 0.5;
     }
+
+    /* ── SETTINGS PANEL ── */
+    .settings-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 13, 24, 0.92);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .settings-overlay.open { display: flex; }
+
+    .settings-panel {
+      background: var(--panel);
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      box-shadow: var(--glow);
+      padding: 28px;
+      width: min(560px, 92vw);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .settings-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      color: var(--accent);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+    }
+
+    .settings-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .settings-label {
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      color: var(--text-dim);
+    }
+
+    .settings-input {
+      background: #020d18;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--text);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.8rem;
+      padding: 8px 10px;
+      outline: none;
+      transition: border-color 0.2s;
+      width: 100%;
+    }
+    .settings-input:focus { border-color: var(--accent); }
+
+    .settings-textarea {
+      resize: vertical;
+      min-height: 110px;
+      line-height: 1.5;
+    }
+
+    .settings-memory {
+      background: #020d18;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 10px;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      line-height: 1.6;
+      max-height: 100px;
+      overflow-y: auto;
+    }
+
+    .settings-btns {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .settings-btn {
+      padding: 9px 20px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .settings-btn.save {
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+    }
+    .settings-btn.save:hover { box-shadow: var(--glow); }
+
+    .settings-btn.cancel {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+    }
+    .settings-btn.cancel:hover { border-color: var(--danger); color: var(--danger); }
+
+    .settings-btn.clear {
+      background: transparent;
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      margin-right: auto;
+    }
+    .settings-btn.clear:hover { box-shadow: 0 0 8px #ff4a4a55; }
+
+    /* ── SETTINGS GEAR BUTTON ── */
+    .gear-btn {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 4px 8px;
+      transition: color 0.2s;
+      letter-spacing: 0;
+    }
+    .gear-btn:hover { color: var(--accent); }
   </style>
 </head>
 <body>
@@ -305,8 +435,42 @@
     <div class="status-bar">
       <div class="status-dot" id="statusDot"></div>
       <span id="statusText">OFFLINE</span>
+      <button class="gear-btn" onclick="openSettings()" title="Settings">⚙</button>
     </div>
   </header>
+
+  <!-- SETTINGS PANEL -->
+  <div class="settings-overlay" id="settingsOverlay">
+    <div class="settings-panel">
+      <div class="settings-title">// SYSTEM CONFIGURATION</div>
+
+      <div class="settings-row">
+        <div class="settings-label">YOUR NAME (how JARVIS addresses you)</div>
+        <input class="settings-input" id="cfgName" type="text" placeholder="e.g. Spidey" maxlength="40"/>
+      </div>
+
+      <div class="settings-row">
+        <div class="settings-label">HONORIFIC</div>
+        <input class="settings-input" id="cfgHonorific" type="text" placeholder="e.g. sir, boss, chief" maxlength="20"/>
+      </div>
+
+      <div class="settings-row">
+        <div class="settings-label">PERSONALITY NOTES (extra instructions for JARVIS)</div>
+        <textarea class="settings-input settings-textarea" id="cfgPersonality" placeholder="e.g. Keep responses concise. You enjoy sarcastic wit. You are a grad student at UT Dallas."></textarea>
+      </div>
+
+      <div class="settings-row">
+        <div class="settings-label">MEMORY LOG (auto-updated each session)</div>
+        <div class="settings-memory" id="cfgMemory">No memories saved yet.</div>
+      </div>
+
+      <div class="settings-btns">
+        <button class="settings-btn clear" onclick="clearMemory()">CLEAR MEMORY</button>
+        <button class="settings-btn cancel" onclick="closeSettings()">CANCEL</button>
+        <button class="settings-btn save" onclick="saveSettings()">SAVE & APPLY</button>
+      </div>
+    </div>
+  </div>
 
   <!-- MAIN AREA -->
   <div style="display:flex; flex-direction:column; gap:14px; overflow:hidden; min-height:0;">
@@ -348,19 +512,39 @@
   // ─────────────────────────────────────────────
   //  !! PASTE YOUR GEMINI API KEY BELOW !!
   // ─────────────────────────────────────────────
-  const GEMINI_API_KEY = "Paste_API_key_here";
+  const GEMINI_API_KEY = "Paste_key_here";
   // ─────────────────────────────────────────────
 
   const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
-  const SYSTEM_PROMPT = `You are J.A.R.V.I.S. — Just A Rather Very Intelligent System — the personal AI assistant of your user. 
+  // ── PHASE 1: PERSISTENT MEMORY & SETTINGS ──
+  const STORE = {
+    get: (k)      => { try { return JSON.parse(localStorage.getItem('jarvis_' + k)); } catch { return null; } },
+    set: (k, v)   => localStorage.setItem('jarvis_' + k, JSON.stringify(v)),
+    del: (k)      => localStorage.removeItem('jarvis_' + k)
+  };
+
+  // Load saved user config (name, honorific, personality notes, memory log)
+  let userConfig = STORE.get('config') || { name: '', honorific: 'sir', personality: '', memory: [] };
+
+  function buildSystemPrompt() {
+    const name     = userConfig.name      || 'sir';
+    const title    = userConfig.honorific || 'sir';
+    const extra    = userConfig.personality ? `\n\nAdditional instructions from your user:\n${userConfig.personality}` : '';
+    const memLines = (userConfig.memory || []).slice(-12); // last 12 memory entries
+    const memBlock = memLines.length
+      ? `\n\nWhat you remember about your user from past sessions:\n${memLines.map(m => '- ' + m).join('\n')}`
+      : '';
+
+    return `You are J.A.R.V.I.S. — Just A Rather Very Intelligent System — the personal AI assistant of your user.
+
+Your user's name is ${name}. Address them as "${title}" in conversation.
 
 Your personality:
 - Precise, calm, and slightly formal but never stiff
 - Subtly witty — a dry quip is always welcome, never forced
 - Proactive: if you notice something worth flagging, mention it
 - Loyal and personalized to your user above all else
-- You refer to the user as "sir" or "ma'am" (default "sir" unless told otherwise)
 
 Your response style:
 - Conversational length — never a wall of text unless asked
@@ -368,7 +552,63 @@ Your response style:
 - Speak in complete, natural sentences as if being heard, not read
 - If you don't know something, say so directly and offer what you can
 
-You are running locally on the user's machine. The date and time are available to you. Stay in character at all times.`;
+You are running locally on the user's machine. The current date and time are: ${new Date().toLocaleString()}. Stay in character at all times.${extra}${memBlock}`;
+  }
+
+  // ── PHASE 1: SESSION GREETING LOGIC ──
+  function buildGreeting() {
+    const hour = new Date().getHours();
+    const name = userConfig.name ? `, ${userConfig.name}` : '';
+    const title = userConfig.honorific || 'sir';
+    const hasMemory = userConfig.memory && userConfig.memory.length > 0;
+
+    let timeGreet;
+    if (hour >= 5  && hour < 12) timeGreet = `Good morning${name}.`;
+    else if (hour >= 12 && hour < 17) timeGreet = `Good afternoon${name}.`;
+    else if (hour >= 17 && hour < 21) timeGreet = `Good evening${name}.`;
+    else timeGreet = `Working late again, ${title}?`;
+
+    const memoryLine = hasMemory
+      ? `I have your previous session notes on file.`
+      : `It appears this is an early session — I'm still building your profile.`;
+
+    return `J.A.R.V.I.S. online. ${timeGreet} All systems are fully operational. ${memoryLine} Just say my name and I'll be right with you.`;
+  }
+
+  // ── PHASE 1: AUTO-SAVE MEMORY AFTER EACH RESPONSE ──
+  async function extractMemory(userText, jarvisReply) {
+    // Only run after every 4th exchange
+    const count = (STORE.get('exchangeCount') || 0) + 1;
+    STORE.set('exchangeCount', count);
+    if (count % 4 !== 0) return;
+
+    const prompt = `You are a memory extractor for a personal AI assistant. 
+Given this exchange, extract 0-2 short factual notes worth remembering about the user (preferences, facts, goals).
+Return ONLY a JSON array of strings, or an empty array []. No explanation, no markdown.
+
+User said: "${userText}"
+Assistant replied: "${jarvisReply}"`;
+
+    try {
+      const res = await fetch(GEMINI_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }]
+        })
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const raw  = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+      const clean = raw.replace(/```json|```/g, '').trim();
+      const notes = JSON.parse(clean);
+      if (Array.isArray(notes) && notes.length > 0) {
+        userConfig.memory = [...(userConfig.memory || []), ...notes].slice(-30); // keep last 30
+        STORE.set('config', userConfig);
+        refreshMemoryDisplay();
+      }
+    } catch (_) { /* silently skip if extraction fails */ }
+  }
 
   // ── STATE ──
   let booted       = false;
@@ -459,40 +699,27 @@ You are running locally on the user's machine. The date and time are available t
       utt.volume = 1;
 
       const voices = window.speechSynthesis.getVoices();
-
-      // ONLY use local (non-Google) voices — Google remote voices break silently in Chrome
       const local = voices.filter(v => !v.name.startsWith('Google'));
-
-      const preferred = 
-        local.find(v => v.name.includes('Microsoft David'))   ||
-        local.find(v => v.name.includes('Microsoft Mark'))    ||
+      const preferred =
+        local.find(v => v.name.includes('Microsoft David'))  ||
+        local.find(v => v.name.includes('Microsoft Mark'))   ||
         local.find(v => v.name.includes('Daniel')  && v.localService) ||
         local.find(v => v.name.includes('Arthur')  && v.localService) ||
         local.find(v => v.lang === 'en-GB' && v.localService) ||
-        local.find(v => v.lang.startsWith('en')    && v.localService) ||
+        local.find(v => v.lang.startsWith('en') && v.localService) ||
         local[0] || voices[0];
-
       if (preferred) utt.voice = preferred;
 
       utt.onend   = () => { speaking = false; onDone && onDone(); };
-      utt.onerror = (e) => { 
-        console.warn('Speech error:', e.error);
-        speaking = false; 
-        onDone && onDone(); 
-      };
-
+      utt.onerror = (e) => { console.warn('Speech error:', e.error); speaking = false; onDone && onDone(); };
       speaking = true;
       currentUtterance = utt;
-
-      // Small delay — prevents Chrome from swallowing the first utterance
       setTimeout(() => window.speechSynthesis.speak(utt), 150);
     };
 
-    // Voices may not be loaded yet — wait for them if needed
     const voices = window.speechSynthesis.getVoices();
-    if (voices.length > 0) {
-      doSpeak();
-    } else {
+    if (voices.length > 0) { doSpeak(); }
+    else {
       window.speechSynthesis.onvoiceschanged = () => {
         window.speechSynthesis.onvoiceschanged = null;
         doSpeak();
@@ -505,7 +732,7 @@ You are running locally on the user's machine. The date and time are available t
     conversationHistory.push({ role: 'user', parts: [{ text: userText }] });
 
     const body = {
-      system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      system_instruction: { parts: [{ text: buildSystemPrompt() }] },
       contents: conversationHistory
     };
 
@@ -520,9 +747,13 @@ You are running locally on the user's machine. The date and time are available t
       throw new Error(err?.error?.message || 'API error');
     }
 
-    const data = await res.json();
+    const data  = await res.json();
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I didn't catch that.";
     conversationHistory.push({ role: 'model', parts: [{ text: reply }] });
+
+    // Fire-and-forget memory extraction
+    extractMemory(userText, reply);
+
     return reply;
   }
 
@@ -540,45 +771,34 @@ You are running locally on the user's machine. The date and time are available t
 
     r.onresult = (e) => {
       if (!booted || speaking) return;
-
       let interim = '', final = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const t = e.results[i][0].transcript;
         if (e.results[i].isFinal) final += t;
         else interim += t;
       }
-
       const display = (final || interim).trim();
       if (display) {
         transcriptBar.textContent = display;
         transcriptBar.classList.add('active');
       }
-
       if (final) {
         const text = final.trim().toLowerCase();
         transcriptBar.classList.remove('active');
-
-        // Wake word check
         if (text.includes('jarvis')) {
           const query = text.replace(/jarvis[,.]?\s*/i, '').trim();
           if (query.length > 1) {
             handleQuery(query);
           } else {
-            // Just said "JARVIS" with nothing after
             setStatus('listening');
-            transcriptBar.textContent = 'Yes, sir? Go ahead...';
-            speak("Yes, sir? How can I help?");
+            transcriptBar.textContent = `Yes, ${userConfig.honorific || 'sir'}? Go ahead...`;
+            speak(`Yes, ${userConfig.honorific || 'sir'}? How can I help?`);
           }
         }
       }
     };
 
-    r.onend = () => {
-      if (booted && !speaking) {
-        try { r.start(); } catch(_) {}
-      }
-    };
-
+    r.onend = () => { if (booted && !speaking) { try { r.start(); } catch(_) {} } };
     r.onerror = (e) => {
       if (e.error !== 'no-speech' && e.error !== 'aborted') {
         transcriptBar.textContent = `Mic error: ${e.error}`;
@@ -591,10 +811,8 @@ You are running locally on the user's machine. The date and time are available t
   // ── HANDLE QUERY ──
   async function handleQuery(query) {
     if (speaking) window.speechSynthesis.cancel();
-
     setStatus('thinking');
     recognition?.stop();
-
     addMessage('user', query);
     addThinking();
     transcriptBar.textContent = 'Processing...';
@@ -605,7 +823,6 @@ You are running locally on the user's machine. The date and time are available t
       addMessage('jarvis', reply);
       setStatus('speaking');
       transcriptBar.textContent = '';
-
       speak(reply, () => {
         setStatus('online');
         transcriptBar.textContent = 'Listening for "JARVIS"...';
@@ -613,7 +830,7 @@ You are running locally on the user's machine. The date and time are available t
       });
     } catch (err) {
       removeThinking();
-      const errMsg = "I'm sorry, sir. I encountered an error: " + err.message;
+      const errMsg = `I'm sorry, ${userConfig.honorific || 'sir'}. I encountered an error: ${err.message}`;
       addMessage('jarvis', errMsg);
       speak(errMsg, () => {
         setStatus('online');
@@ -639,15 +856,11 @@ You are running locally on the user's machine. The date and time are available t
     setStatus('online');
     transcriptBar.textContent = 'Initializing...';
 
-    // Load voices (Chrome async)
-    const tryStart = () => {
-      try { recognition.start(); } catch(_) {}
-    };
-
+    const tryStart = () => { try { recognition.start(); } catch(_) {} };
     window.speechSynthesis.onvoiceschanged = tryStart;
     if (window.speechSynthesis.getVoices().length > 0) tryStart();
 
-    const greeting = "J.A.R.V.I.S. online. Good to see you, sir. All systems are fully operational. Just say my name and I'll be right with you.";
+    const greeting = buildGreeting();
     addMessage('jarvis', greeting);
     setStatus('speaking');
 
@@ -670,15 +883,13 @@ You are running locally on the user's machine. The date and time are available t
   // ── SHUTDOWN ──
   function shutdown() {
     if (!booted) return;
-    const bye = "Shutting down all systems. Goodbye, sir.";
+    const bye = `Shutting down all systems. Goodbye, ${userConfig.honorific || 'sir'}.`;
     addMessage('jarvis', bye);
-
     speak(bye, () => {
       recognition?.stop();
       booted = false;
       speaking = false;
       setStatus('offline');
-
       bootBtn.disabled    = false;
       muteBtn.disabled    = true;
       shutdownBtn.disabled= true;
@@ -690,6 +901,55 @@ You are running locally on the user's machine. The date and time are available t
       conversationHistory = [];
     });
   }
+
+  // ── SETTINGS PANEL ──
+  function openSettings() {
+    document.getElementById('cfgName').value        = userConfig.name        || '';
+    document.getElementById('cfgHonorific').value   = userConfig.honorific   || 'sir';
+    document.getElementById('cfgPersonality').value = userConfig.personality || '';
+    refreshMemoryDisplay();
+    document.getElementById('settingsOverlay').classList.add('open');
+  }
+
+  function closeSettings() {
+    document.getElementById('settingsOverlay').classList.remove('open');
+  }
+
+  function saveSettings() {
+    userConfig.name        = document.getElementById('cfgName').value.trim();
+    userConfig.honorific   = document.getElementById('cfgHonorific').value.trim() || 'sir';
+    userConfig.personality = document.getElementById('cfgPersonality').value.trim();
+    STORE.set('config', userConfig);
+    closeSettings();
+
+    // If JARVIS is already online, acknowledge the update
+    if (booted) {
+      const ack = `Configuration updated, ${userConfig.honorific}. I've applied your new settings.`;
+      addMessage('jarvis', ack);
+      speak(ack);
+    }
+  }
+
+  function clearMemory() {
+    if (!confirm('Clear all of JARVIS\'s memory about you? This cannot be undone.')) return;
+    userConfig.memory = [];
+    STORE.set('config', userConfig);
+    STORE.del('exchangeCount');
+    refreshMemoryDisplay();
+  }
+
+  function refreshMemoryDisplay() {
+    const el = document.getElementById('cfgMemory');
+    const mem = userConfig.memory || [];
+    el.textContent = mem.length
+      ? mem.map((m, i) => `${i + 1}. ${m}`).join('\n')
+      : 'No memories saved yet.';
+  }
+
+  // Close settings if clicking outside the panel
+  document.getElementById('settingsOverlay').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('settingsOverlay')) closeSettings();
+  });
 </script>
 </body>
 </html>
