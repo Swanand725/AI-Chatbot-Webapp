@@ -29,9 +29,23 @@
       color: var(--text);
       font-family: 'Share Tech Mono', monospace;
       overflow: hidden;
+      position: relative;
     }
 
-    /* ── SCANLINE OVERLAY ── */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(0, 200, 255, 0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 200, 255, 0.06) 1px, transparent 1px);
+      background-size: 80px 80px, 80px 80px;
+      opacity: 0.12;
+      z-index: 998;
+    }
+
+    /* ── SCAN LINE OVERLAY ── */
     body::before {
       content: '';
       position: fixed; inset: 0;
@@ -48,6 +62,7 @@
 
     /* ── LAYOUT ── */
     .shell {
+      position: relative;
       display: grid;
       grid-template-rows: auto 1fr auto;
       height: 100vh;
@@ -55,6 +70,17 @@
       gap: 16px;
       max-width: 900px;
       margin: 0 auto;
+    }
+
+    .shell::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(circle at 20% 15%, rgba(0, 200, 255, 0.08), transparent 18%),
+        radial-gradient(circle at 82% 18%, rgba(0, 255, 180, 0.05), transparent 16%),
+        radial-gradient(circle at 50% 90%, rgba(255, 255, 255, 0.04), transparent 12%);
     }
 
     /* ── HEADER ── */
@@ -93,17 +119,86 @@
       letter-spacing: 0.1em;
     }
 
+    .status-text-group {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 180px;
+    }
+
+    .status-meta {
+      font-size: 0.62rem;
+      letter-spacing: 0.2em;
+      color: rgba(200, 255, 255, 0.72);
+    }
+
     .status-dot {
-      width: 8px; height: 8px;
+      width: 10px; height: 10px;
       border-radius: 50%;
       background: var(--text-dim);
-      transition: background 0.3s, box-shadow 0.3s;
+      transition: background 0.3s, box-shadow 0.3s, transform 0.3s;
     }
-    .status-dot.online   { background: var(--success); box-shadow: 0 0 8px var(--success); }
-    .status-dot.listening{ background: var(--accent);  box-shadow: 0 0 8px var(--accent); animation: pulse 1s infinite; }
-    .status-dot.thinking { background: #ffaa00;        box-shadow: 0 0 8px #ffaa00; animation: pulse 0.5s infinite; }
-    .status-dot.speaking { background: #aa00ff;        box-shadow: 0 0 8px #aa00ff; animation: pulse 0.8s infinite; }
+    .status-dot.online   { background: var(--success); box-shadow: 0 0 8px var(--success); transform: scale(1.05); }
+    .status-dot.listening{ background: var(--accent);  box-shadow: 0 0 10px var(--accent); animation: pulse 1s infinite; transform: scale(1.1); }
+    .status-dot.thinking { background: #ffaa00;        box-shadow: 0 0 10px #ffaa00; animation: pulse 0.5s infinite; transform: scale(1.08); }
+    .status-dot.speaking { background: #aa00ff;        box-shadow: 0 0 10px #aa00ff; animation: pulse 0.8s infinite; transform: scale(1.08); }
     .status-dot.offline  { background: var(--danger);  box-shadow: 0 0 8px var(--danger); }
+
+    .waveform {
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 12px;
+      border: 1px solid rgba(0, 200, 255, 0.18);
+      background: rgba(0, 24, 40, 0.75);
+      border-radius: 6px;
+      height: 42px;
+      flex-shrink: 0;
+      transition: background 0.25s ease;
+      overflow: hidden;
+    }
+
+    .waveform span {
+      flex: 1;
+      min-height: 6px;
+      background: rgba(0, 200, 255, 0.45);
+      border-radius: 999px;
+      transition: height 0.15s ease, opacity 0.15s ease;
+      opacity: 0.25;
+    }
+
+    .waveform.active {
+      background: rgba(0, 20, 32, 0.95);
+    }
+
+    .waveform span:nth-child(odd) {
+      background: rgba(0, 200, 255, 0.65);
+    }
+
+    .msg.jarvis .msg-bubble {
+      background: rgba(0, 20, 40, 0.92);
+      color: #c8ffff;
+      border: 1px solid rgba(0, 200, 255, 0.45);
+      box-shadow: 0 0 18px rgba(0, 200, 255, 0.12);
+      border-image: linear-gradient(180deg, rgba(0,200,255,0.65), rgba(0,120,255,0.1)) 1;
+      backdrop-filter: blur(10px);
+    }
+
+    .msg.user .msg-bubble {
+      background: rgba(12, 40, 68, 0.92);
+      color: var(--text);
+      border: 1px solid rgba(0, 140, 210, 0.28);
+      box-shadow: inset 0 0 14px rgba(0, 120, 190, 0.08);
+    }
+
+    .msg.jarvis .msg-bubble.thinking-bubble {
+      color: var(--text-dim);
+      font-style: italic;
+      animation: pulse 1s infinite;
+      background: rgba(0, 14, 28, 0.96);
+      border: 1px dashed rgba(170, 170, 255, 0.22);
+    }
 
     @keyframes pulse {
       0%, 100% { opacity: 1; }
@@ -132,6 +227,20 @@
       stroke: var(--dim);
       stroke-width: 3;
     }
+    .arc-ring.secondary {
+      stroke: rgba(0, 200, 255, 0.18);
+      stroke-width: 2;
+      stroke-dasharray: 6 18;
+      transform-origin: center;
+      animation: spin 18s linear infinite;
+    }
+    .arc-ring.tertiary {
+      stroke: rgba(0, 200, 255, 0.1);
+      stroke-width: 1.5;
+      stroke-dasharray: 4 14;
+      transform-origin: center;
+      animation: spin 12s linear reverse infinite;
+    }
     .arc-active {
       fill: none;
       stroke: var(--accent);
@@ -156,6 +265,11 @@
       letter-spacing: 0.15em;
       color: var(--text-dim);
       text-align: center;
+      text-shadow: 0 0 10px rgba(0, 200, 255, 0.18);
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
 
     /* ── CONVERSATION LOG ── */
@@ -192,10 +306,21 @@
       flex-direction: column;
       gap: 3px;
       max-width: 85%;
-      animation: fadeIn 0.25s ease;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fadeIn 0.25s ease forwards;
+    }
+
+    .msg.enter {
+      animation: msgEnter 0.28s ease-out forwards;
     }
 
     @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    @keyframes msgEnter {
+      from { opacity: 0; transform: translateY(16px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
 
     .msg.user  { align-self: flex-end; text-align: right; }
     .msg.jarvis{ align-self: flex-start; }
@@ -207,10 +332,27 @@
     }
 
     .msg-bubble {
+      position: relative;
       padding: 8px 12px;
       border-radius: 3px;
       font-size: 0.85rem;
       line-height: 1.5;
+      overflow: hidden;
+    }
+
+    .msg-bubble::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.05;
+      background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.02) 65%, transparent 100%);
+      transform: translateX(-100%);
+      transition: transform 0.9s ease;
+    }
+
+    .msg.enter .msg-bubble::after {
+      transform: translateX(0);
     }
 
     .msg.user   .msg-bubble { background: var(--dim); color: var(--text); border: 1px solid var(--accent2); }
@@ -237,6 +379,53 @@
     .transcript-bar.active {
       border-color: var(--accent);
       color: var(--text);
+    }
+
+    .keyboard-fallback {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px 14px;
+      margin-top: 8px;
+      border: 1px solid rgba(0, 200, 255, 0.2);
+      border-radius: 6px;
+      background: rgba(0, 12, 24, 0.88);
+      box-shadow: inset 0 0 16px rgba(0, 200, 255, 0.08);
+    }
+
+    .keyboard-fallback.visible {
+      display: flex;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .keyboard-fallback label {
+      color: #9fdcff;
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .keyboard-fallback input {
+      width: 100%;
+      padding: 10px 12px;
+      background: rgba(1, 18, 32, 0.95);
+      border: 1px solid rgba(0, 150, 255, 0.35);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    .keyboard-fallback input:focus {
+      border-color: rgba(0, 200, 255, 0.72);
+      box-shadow: 0 0 14px rgba(0, 180, 255, 0.15);
+    }
+
+    .keyboard-hint {
+      color: var(--text-dim);
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
     }
 
     /* ── CONTROLS ── */
@@ -434,7 +623,10 @@
     </div>
     <div class="status-bar">
       <div class="status-dot" id="statusDot"></div>
-      <span id="statusText">OFFLINE</span>
+      <div class="status-text-group">
+        <span id="statusText">OFFLINE</span>
+        <div class="status-meta" id="statusMeta">AUDIO: OFF • API: IDLE</div>
+      </div>
       <button class="gear-btn" onclick="openSettings()" title="Settings">⚙</button>
     </div>
   </header>
@@ -479,15 +671,25 @@
     <div class="arc-wrap">
       <div class="arc">
         <svg viewBox="0 0 100 100">
-          <circle class="arc-ring"   cx="50" cy="50" r="45"/>
-          <circle class="arc-active" cx="50" cy="50" r="45" id="arcRing"/>
+          <circle class="arc-ring"       cx="50" cy="50" r="45"/>
+          <circle class="arc-ring secondary" cx="50" cy="50" r="36"/>
+          <circle class="arc-ring tertiary"  cx="50" cy="50" r="27"/>
+          <circle class="arc-active"     cx="50" cy="50" r="45" id="arcRing"/>
         </svg>
         <div class="arc-center" id="arcLabel">STANDBY</div>
       </div>
     </div>
 
     <!-- LIVE TRANSCRIPTION -->
-    <div class="transcript-bar" id="transcriptBar">Awaiting boot sequence...</div>
+    <div class="transcript-bar" id="transcriptBar">Awaiting boot sequence... Press Enter to type.</div>
+    <div class="waveform" id="waveform" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div class="keyboard-fallback" id="keyboardFallback">
+      <label for="keyboardInput">Type your command:</label>
+      <input id="keyboardInput" type="text" placeholder="Ask JARVIS a question..." autocomplete="off" />
+      <div class="keyboard-hint">Enter = send, Esc = cancel</div>
+    </div>
 
     <!-- LOG -->
     <div class="log-wrap">
@@ -625,10 +827,43 @@ Assistant replied: "${jarvisReply}"`;
   const arcRing      = document.getElementById('arcRing');
   const arcLabel     = document.getElementById('arcLabel');
   const transcriptBar= document.getElementById('transcriptBar');
-  const log          = document.getElementById('log');
-  const bootBtn      = document.getElementById('bootBtn');
-  const muteBtn      = document.getElementById('muteBtn');
-  const shutdownBtn  = document.getElementById('shutdownBtn');
+  const log            = document.getElementById('log');
+  const waveform       = document.getElementById('waveform');
+  const statusMeta     = document.getElementById('statusMeta');
+  const keyboardInput  = document.getElementById('keyboardInput');
+  const keyboardFallback = document.getElementById('keyboardFallback');
+  const bootBtn        = document.getElementById('bootBtn');
+  const muteBtn        = document.getElementById('muteBtn');
+  const shutdownBtn    = document.getElementById('shutdownBtn');
+  let audioVizInterval = null;
+
+  document.addEventListener('keydown', (event) => {
+    if (!booted) return;
+    if (event.key === 'Enter' && !keyboardFallback.classList.contains('visible')) {
+      keyboardFallback.classList.add('visible');
+      keyboardInput.focus();
+      event.preventDefault();
+    } else if (event.key === 'Escape' && keyboardFallback.classList.contains('visible')) {
+      keyboardFallback.classList.remove('visible');
+      transcriptBar.textContent = 'Listening for "JARVIS"...';
+      event.preventDefault();
+    }
+  });
+
+  keyboardInput?.addEventListener('keydown', async (event) => {
+    if (event.key === 'Enter') {
+      const value = keyboardInput.value.trim();
+      if (!value) return;
+      keyboardInput.value = '';
+      keyboardFallback.classList.remove('visible');
+      handleQuery(value);
+      event.preventDefault();
+    } else if (event.key === 'Escape') {
+      keyboardFallback.classList.remove('visible');
+      transcriptBar.textContent = 'Listening for "JARVIS"...';
+      event.preventDefault();
+    }
+  });
 
   // ── STATUS HELPER ──
   function setStatus(state) {
@@ -640,6 +875,15 @@ Assistant replied: "${jarvisReply}"`;
     };
     statusText.textContent = labels[state] || state.toUpperCase();
 
+    const metas = {
+      offline: 'AUDIO: OFF • API: IDLE',
+      online: 'AUDIO: READY • API: READY',
+      listening: 'AUDIO: LISTENING • API: READY',
+      thinking: 'AUDIO: PROCESSING • API: REQUESTING',
+      speaking: 'AUDIO: SPEAKING • API: READY'
+    };
+    statusMeta.textContent = metas[state] || 'AUDIO: UNKNOWN • API: READY';
+
     // Arc ring fill
     const fills = { offline: 0, online: 0.15, listening: 0.6, thinking: 0.85, speaking: 1 };
     const pct = fills[state] ?? 0;
@@ -647,22 +891,63 @@ Assistant replied: "${jarvisReply}"`;
     const colors = { offline: '#1a4a6a', online: '#00c8ff', listening: '#00c8ff', thinking: '#ffaa00', speaking: '#aa00ff' };
     arcRing.style.stroke = colors[state] || '#00c8ff';
     arcRing.style.filter = `drop-shadow(0 0 8px ${colors[state] || '#00c8ff'})`;
+    updateAudioWaveform(state);
+  }
+
+  function updateAudioWaveform(state) {
+    if (!waveform) return;
+    const bars = Array.from(waveform.querySelectorAll('span'));
+    waveform.classList.toggle('active', state === 'listening' || state === 'speaking');
+    clearInterval(audioVizInterval);
+
+    if (state === 'listening' || state === 'speaking') {
+      audioVizInterval = setInterval(() => {
+        bars.forEach((bar, index) => {
+          const base = state === 'speaking' ? 18 : 12;
+          const variance = state === 'speaking' ? 20 : 12;
+          const height = Math.max(8, base + Math.round(Math.random() * variance) - index * 2);
+          bar.style.height = `${height}px`;
+          bar.style.opacity = `${0.35 + Math.random() * 0.55}`;
+        });
+      }, 120);
+    } else {
+      audioVizInterval = setInterval(() => {
+        bars.forEach(bar => {
+          bar.style.height = '8px';
+          bar.style.opacity = '0.18';
+        });
+      }, 300);
+    }
   }
 
   // ── LOG HELPER ──
   function addMessage(role, text) {
     const wrap = document.createElement('div');
     wrap.className = 'msg ' + role;
+    wrap.classList.add('enter');
     const label = document.createElement('div');
     label.className = 'msg-label';
     label.textContent = role === 'user' ? '// YOU' : '// J.A.R.V.I.S.';
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble';
-    bubble.textContent = text;
     wrap.appendChild(label);
     wrap.appendChild(bubble);
     log.appendChild(wrap);
     log.scrollTop = log.scrollHeight;
+
+    if (role === 'jarvis') {
+      bubble.textContent = '';
+      let index = 0;
+      const reveal = setInterval(() => {
+        bubble.textContent += text.charAt(index);
+        log.scrollTop = log.scrollHeight;
+        index += 1;
+        if (index >= text.length) clearInterval(reveal);
+      }, 18);
+    } else {
+      bubble.textContent = text;
+    }
+
     return bubble;
   }
 
@@ -808,9 +1093,128 @@ Assistant replied: "${jarvisReply}"`;
     return r;
   }
 
+  // ── PHASE 2: SLASH COMMANDS ──
+  // Add or edit commands here. Each entry needs:
+  //   triggers : words/phrases that activate it (lowercase)
+  //   action   : what happens when triggered
+  //   reply    : what JARVIS says out loud
+  const SLASH_COMMANDS = [
+    {
+      // Opening YouTube
+      triggers: ['open youtube', 'youtube'],
+      action:   () => window.open('https://youtube.com', '_blank'),
+      reply:    `Opening YouTube now, ${userConfig.honorific || 'sir'}.`
+    },
+    {
+      // Opening Spotify
+      triggers: ['open spotify', 'spotify'],
+      action:   () => window.open('https://open.spotify.com', '_blank'),
+      reply:    `Launching Spotify, ${userConfig.honorific || 'sir'}.`
+    },
+    {
+      // Opening GitHub
+      triggers: ['open github', 'github'],
+      action:   () => window.open('https://github.com', '_blank'),
+      reply:    `Opening GitHub, ${userConfig.honorific || 'sir'}.`
+    },
+    {
+      // Opening Gmail
+      triggers: ['open gmail', 'check email', 'check my email'],
+      action:   () => window.open('https://mail.google.com', '_blank'),
+      reply:    `Pulling up your email, ${userConfig.honorific || 'sir'}.`
+    },
+    {
+      // Opening Google Maps 
+      triggers: ['open google maps', 'open maps', 'maps'],
+      action:   () => window.open('https://maps.google.com', '_blank'),
+      reply:    `Opening Maps, ${userConfig.honorific || 'sir'}.`
+    },
+    {
+      // Opening Disney Plus 
+      triggers: ['open disney plus', 'open disney', 'disney plus', 'disney'],
+      action:   () => window.open('https://www.disneyplus.com', '_blank'),
+      reply:    `Opening Disney Plus, ${userConfig.honorific || 'sir'}.`
+    },
+    {
+      // Opening Netflix 
+      triggers: ['open netflix', 'netflix'],
+      action:   () => window.open('https://www.netflix.com', '_blank'),
+      reply:    `Opening Netflix, ${userConfig.honorific || 'sir'}.`
+    },
+    {
+      // Opening Amazon
+      triggers: ['open amazon', 'amazon', 'open prime video', 'prime video', 'open amazon prime', 'amazon prime'],
+      action:   () => window.open('https://www.amazon.com', '_blank'),
+      reply:    `Opening Amazon, ${userConfig.honorific || 'sir'}.`
+    },
+    {
+      // Extract what comes after "search for" or "search"
+      triggers: ['search for ', 'search '],
+      action:   (query) => {
+        const term = query.replace(/^search (for )?/i, '').trim();
+        window.open(`https://www.google.com/search?q=${encodeURIComponent(term)}`, '_blank');
+      },
+      reply:    (query) => {
+        const term = query.replace(/^search (for )?/i, '').trim();
+        return `Searching for "${term}", ${userConfig.honorific || 'sir'}.`;
+      }
+    },
+    {
+      // For time and date, we can provide a dynamic reply without opening a browser
+      triggers: ['what time is it', 'current time', 'what\'s the time'],
+      action:   null, 
+      reply:    () => {
+        const now = new Date();
+        return `The current time is ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}, ${userConfig.honorific || 'sir'}.`;
+      }
+    },
+    {
+      triggers: ['what day is it', 'what\'s today', 'today\'s date', 'what is today'],
+      action:   null,
+      reply:    () => {
+        const now = new Date();
+        return `Today is ${now.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}, ${userConfig.honorific || 'sir'}.`;
+      }
+    }
+  ];
+
+  // Returns true if the query matched a command and was handled
+  function checkSlashCommand(query) {
+    const q = query.toLowerCase().trim();
+
+    for (const cmd of SLASH_COMMANDS) {
+      const matched = cmd.triggers.find(t => q.startsWith(t) || q === t);
+      if (!matched) continue;
+
+      // Resolve reply — can be a string or a function
+      const replyText = typeof cmd.reply === 'function' ? cmd.reply(q) : cmd.reply;
+
+      // Run the action if there is one
+      if (cmd.action) cmd.action(q);
+
+      // Log and speak the reply
+      addMessage('user', query);
+      addMessage('jarvis', replyText);
+      setStatus('speaking');
+      speak(replyText, () => {
+        setStatus('online');
+        transcriptBar.textContent = 'Listening for "JARVIS"...';
+        try { recognition?.start(); } catch(_) {}
+      });
+
+      return true; // API call skipped because a slash command was matched
+    }
+
+    return false; // not a command, API gets called here 
+  }
+
   // ── HANDLE QUERY ──
   async function handleQuery(query) {
     if (speaking) window.speechSynthesis.cancel();
+
+    // Check slash commands first — if matched, skip the API entirely
+    if (checkSlashCommand(query)) return;
+
     setStatus('thinking');
     recognition?.stop();
     addMessage('user', query);
