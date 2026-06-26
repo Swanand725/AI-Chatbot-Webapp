@@ -1083,14 +1083,40 @@ Assistant replied: "${jarvisReply}"`;
       }
     };
 
-    r.onend = () => { if (booted && !speaking) { try { r.start(); } catch(_) {} } };
+    r.onend = () => {
+      // Small delay before restarting — Edge requires this gap or it re-prompts for mic permission
+      if (booted && !speaking) {
+        setTimeout(() => {
+          if (booted && !speaking) {
+            try { r.start(); } catch(_) {}
+          }
+        }, 250);
+      }
+    };
     r.onerror = (e) => {
-      if (e.error !== 'no-speech' && e.error !== 'aborted') {
+      if (e.error === 'not-allowed') {
+        transcriptBar.textContent = 'Microphone access denied. Please allow mic access in your browser settings.';
+      } else if (e.error !== 'no-speech' && e.error !== 'aborted') {
         transcriptBar.textContent = `Mic error: ${e.error}`;
+        // Auto-recover from transient errors
+        setTimeout(() => {
+          if (booted && !speaking) { try { r.start(); } catch(_) {} }
+        }, 500);
       }
     };
 
     return r;
+  }
+
+  // Safe URL opener — bypasses popup blocker by simulating a real link click
+  function openURL(url) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   }
 
   // ── PHASE 2: SLASH COMMANDS ──
@@ -1102,57 +1128,57 @@ Assistant replied: "${jarvisReply}"`;
     {
       // Opening YouTube
       triggers: ['open youtube', 'youtube'],
-      action:   () => window.open('https://youtube.com', '_blank'),
-      reply:    `Opening YouTube now, ${userConfig.honorific || 'sir'}.`
+      action:   () => openURL('https://youtube.com'),
+      reply:    () => `Opening YouTube now, ${userConfig.honorific || 'sir'}.`
     },
     {
       // Opening Spotify
       triggers: ['open spotify', 'spotify'],
-      action:   () => window.open('https://open.spotify.com', '_blank'),
-      reply:    `Launching Spotify, ${userConfig.honorific || 'sir'}.`
+      action:   () => openURL('https://open.spotify.com'),
+      reply:    () => `Launching Spotify, ${userConfig.honorific || 'sir'}.`
     },
     {
       // Opening GitHub
       triggers: ['open github', 'github'],
-      action:   () => window.open('https://github.com', '_blank'),
-      reply:    `Opening GitHub, ${userConfig.honorific || 'sir'}.`
+      action:   () => openURL('https://github.com'),
+      reply:    () => `Opening GitHub, ${userConfig.honorific || 'sir'}.`
     },
     {
       // Opening Gmail
       triggers: ['open gmail', 'check email', 'check my email'],
-      action:   () => window.open('https://mail.google.com', '_blank'),
-      reply:    `Pulling up your email, ${userConfig.honorific || 'sir'}.`
+      action:   () => openURL('https://mail.google.com'),
+      reply:    () => `Pulling up your email, ${userConfig.honorific || 'sir'}.`
     },
     {
-      // Opening Google Maps 
+      // Opening Google Maps
       triggers: ['open google maps', 'open maps', 'maps'],
-      action:   () => window.open('https://maps.google.com', '_blank'),
-      reply:    `Opening Maps, ${userConfig.honorific || 'sir'}.`
+      action:   () => openURL('https://maps.google.com'),
+      reply:    () => `Opening Maps, ${userConfig.honorific || 'sir'}.`
     },
     {
-      // Opening Disney Plus 
+      // Opening Disney Plus
       triggers: ['open disney plus', 'open disney', 'disney plus', 'disney'],
-      action:   () => window.open('https://www.disneyplus.com', '_blank'),
-      reply:    `Opening Disney Plus, ${userConfig.honorific || 'sir'}.`
+      action:   () => openURL('https://www.disneyplus.com'),
+      reply:    () => `Opening Disney Plus, ${userConfig.honorific || 'sir'}.`
     },
     {
-      // Opening Netflix 
+      // Opening Netflix
       triggers: ['open netflix', 'netflix'],
-      action:   () => window.open('https://www.netflix.com', '_blank'),
-      reply:    `Opening Netflix, ${userConfig.honorific || 'sir'}.`
+      action:   () => openURL('https://www.netflix.com'),
+      reply:    () => `Opening Netflix, ${userConfig.honorific || 'sir'}.`
     },
     {
       // Opening Amazon
       triggers: ['open amazon', 'amazon', 'open prime video', 'prime video', 'open amazon prime', 'amazon prime'],
-      action:   () => window.open('https://www.amazon.com', '_blank'),
-      reply:    `Opening Amazon, ${userConfig.honorific || 'sir'}.`
+      action:   () => openURL('https://www.amazon.com'),
+      reply:    () => `Opening Amazon, ${userConfig.honorific || 'sir'}.`
     },
     {
       // Extract what comes after "search for" or "search"
       triggers: ['search for ', 'search '],
       action:   (query) => {
         const term = query.replace(/^search (for )?/i, '').trim();
-        window.open(`https://www.google.com/search?q=${encodeURIComponent(term)}`, '_blank');
+        openURL(`https://www.google.com/search?q=${encodeURIComponent(term)}`);
       },
       reply:    (query) => {
         const term = query.replace(/^search (for )?/i, '').trim();
@@ -1160,16 +1186,16 @@ Assistant replied: "${jarvisReply}"`;
       }
     },
     {
-      // For time and date, we can provide a dynamic reply without opening a browser
-      triggers: ['what time is it', 'current time', 'what\'s the time'],
-      action:   null, 
+      // Time — no browser action needed, reply handles it
+      triggers: ['what time is it', 'current time', "what's the time"],
+      action:   null,
       reply:    () => {
         const now = new Date();
         return `The current time is ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}, ${userConfig.honorific || 'sir'}.`;
       }
     },
     {
-      triggers: ['what day is it', 'what\'s today', 'today\'s date', 'what is today'],
+      triggers: ['what day is it', "what's today", "today's date", 'what is today'],
       action:   null,
       reply:    () => {
         const now = new Date();
