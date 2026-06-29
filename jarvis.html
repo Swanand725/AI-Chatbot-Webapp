@@ -703,6 +703,7 @@
     <div class="controls">
       <button class="btn primary" id="bootBtn"     onclick="boot()">BOOT JARVIS</button>
       <button class="btn"         id="muteBtn"     onclick="toggleMute()" disabled>MUTE</button>
+      <button class="btn"         id="exportBtn"   onclick="exportConversation()" disabled>EXPORT LOG</button>
       <button class="btn danger"  id="shutdownBtn" onclick="shutdown()" disabled>SHUT DOWN</button>
     </div>
   </div>
@@ -834,6 +835,7 @@ Assistant replied: "${jarvisReply}"`;
   const keyboardFallback = document.getElementById('keyboardFallback');
   const bootBtn        = document.getElementById('bootBtn');
   const muteBtn        = document.getElementById('muteBtn');
+  const exportBtn      = document.getElementById('exportBtn');
   const shutdownBtn    = document.getElementById('shutdownBtn');
   let audioVizInterval = null;
 
@@ -1277,6 +1279,7 @@ Assistant replied: "${jarvisReply}"`;
 
     bootBtn.disabled    = true;
     muteBtn.disabled    = false;
+    exportBtn.disabled  = false;
     shutdownBtn.disabled= false;
     bootBtn.textContent = 'ONLINE';
 
@@ -1322,14 +1325,75 @@ Assistant replied: "${jarvisReply}"`;
       setStatus('offline');
       bootBtn.disabled    = false;
       muteBtn.disabled    = true;
+      exportBtn.disabled  = true;
       shutdownBtn.disabled= true;
       bootBtn.textContent = 'BOOT JARVIS';
       muteBtn.textContent = 'MUTE';
       muteBtn.className   = 'btn';
+      exportBtn.textContent = 'EXPORT LOG';
       transcriptBar.textContent = 'System offline.';
       transcriptBar.classList.remove('active');
       conversationHistory = [];
     });
+  }
+
+  // ── PHASE 2: CONVERSATION EXPORT ──
+  function exportConversation() {
+    if (conversationHistory.length === 0) {
+      const msg = `There's nothing to export yet, ${userConfig.honorific || 'sir'}. We haven't spoken this session.`;
+      addMessage('jarvis', msg);
+      speak(msg);
+      return;
+    }
+
+    // Build the export text
+    const now       = new Date();
+    const timestamp = now.toLocaleString();
+    const fileName  = `JARVIS_log_${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}.txt`;
+
+    const header = [
+      '╔══════════════════════════════════════════════════╗',
+      '║         J.A.R.V.I.S. — CONVERSATION LOG         ║',
+      '╚══════════════════════════════════════════════════╝',
+      `  Exported : ${timestamp}`,
+      `  User     : ${userConfig.name || 'Unknown'}`,
+      `  Session  : ${conversationHistory.length} exchanges`,
+      '──────────────────────────────────────────────────',
+      ''
+    ].join('\n');
+
+    const body = conversationHistory.map(entry => {
+      const speaker = entry.role === 'user'
+        ? (userConfig.name || 'YOU').toUpperCase()
+        : 'J.A.R.V.I.S.';
+      const text = entry.parts.map(p => p.text).join(' ');
+      return `[${speaker}]\n${text}\n`;
+    }).join('\n');
+
+    const footer = [
+      '',
+      '──────────────────────────────────────────────────',
+      '  END OF LOG — STARK INDUSTRIES PERSONAL AI',
+      '──────────────────────────────────────────────────'
+    ].join('\n');
+
+    const fullText = header + body + footer;
+
+    // Trigger download
+    const blob = new Blob([fullText], { type: 'text/plain;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    // Confirm to user
+    const confirm = `Session log exported, ${userConfig.honorific || 'sir'}. ${conversationHistory.length} exchanges saved to your downloads folder.`;
+    addMessage('jarvis', confirm);
+    speak(confirm);
   }
 
   // ── SETTINGS PANEL ──
